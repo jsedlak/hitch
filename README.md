@@ -1,4 +1,4 @@
-!(Hitch Logo)[logo.png]
+![Logo](logo.png)
 
 # Hitch
 
