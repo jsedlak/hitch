@@ -40,6 +40,63 @@ internal sealed class HitchBuilder : IHitchBuilder
     }
 
     /// <summary>
+    /// Loads configuration from the Hitch:Configuration section.
+    /// </summary>
+    public void LoadFromConfiguration()
+    {
+        var configSection = _configuration.GetSection("Hitch:Configuration");
+        if (!configSection.Exists())
+        {
+            return;
+        }
+
+        // Load assemblies from configuration
+        var assembliesConfig = configSection.GetSection("Assemblies");
+        if (assembliesConfig.Exists())
+        {
+            var assemblyNames = assembliesConfig.Get<string[]>();
+            if (assemblyNames != null)
+            {
+                foreach (var assemblyName in assemblyNames)
+                {
+                    if (!string.IsNullOrWhiteSpace(assemblyName))
+                    {
+                        try
+                        {
+                            var assembly = Assembly.Load(assemblyName);
+                            if (!_assemblies.Contains(assembly))
+                            {
+                                _assemblies.Add(assembly);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.Error.WriteLine($"[Hitch] Error loading assembly '{assemblyName}' from configuration: {ex.Message}");
+                        }
+                    }
+                }
+            }
+        }
+
+        // Load file patterns from configuration
+        var filePatternsConfig = configSection.GetSection("FilePatterns");
+        if (filePatternsConfig.Exists())
+        {
+            var patterns = filePatternsConfig.Get<string[]>();
+            if (patterns != null)
+            {
+                foreach (var pattern in patterns)
+                {
+                    if (!string.IsNullOrWhiteSpace(pattern) && !_filePatterns.Contains(pattern))
+                    {
+                        _filePatterns.Add(pattern);
+                    }
+                }
+            }
+        }
+    }
+
+    /// <summary>
     /// Builds and attaches all discovered Hitch plugins.
     /// </summary>
     public void Build()

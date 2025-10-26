@@ -39,7 +39,10 @@ public static class ServiceCollectionExtensions
         // Create the builder
         var builder = new HitchBuilder(services, configuration);
 
-        // Apply user configuration if provided
+        // Load configuration from Hitch:Configuration section first
+        builder.LoadFromConfiguration();
+
+        // Apply user configuration if provided (additive)
         configure?.Invoke(builder);
 
         // Build and attach all plugins
