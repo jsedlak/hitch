@@ -13,7 +13,7 @@ builder.AddHitch(builder => {
         typeof(string).Assembly
     );
 
-    builder.WithFilePatter("*.Hitch.Plugin.dll");
+    builder.WithFilePattern("*.Hitch.Plugin.dll");
 })
 ```
 
