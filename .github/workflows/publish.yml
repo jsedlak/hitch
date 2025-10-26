@@ -1,0 +1,41 @@
+name: Publish Packages
+
+on:
+  workflow_dispatch: # Allow running the workflow manually from the GitHub UI
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Install dependencies
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test --configuration Release --no-restore
+
+      - name: Publish Hitch
+        uses: brandedoutcast/publish-nuget@v2.5.2
+        with:
+          PROJECT_FILE_PATH: src/Hitch/Hitch.csproj
+          NUGET_KEY: ${{secrets.NUGET_API_KEY}}
+
+      - name: Publish Hitch.Aspire.Hosting
+        uses: brandedoutcast/publish-nuget@v2.5.2
+        with:
+          PROJECT_FILE_PATH: src/Hitch.Aspire.Hosting/Hitch.Aspire.Hosting.csproj
+          NUGET_KEY: ${{secrets.NUGET_API_KEY}}
