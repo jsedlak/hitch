@@ -28,14 +28,14 @@ jobs:
       - name: Test
         run: dotnet test --configuration Release --no-restore
 
-      - name: Publish Hitch
-        uses: brandedoutcast/publish-nuget@v2.5.2
-        with:
-          PROJECT_FILE_PATH: src/Hitch/Hitch.csproj
-          NUGET_KEY: ${{secrets.NUGET_API_KEY}}
+      - name: Pack Hitch
+        run: dotnet pack src/Hitch/Hitch.csproj --configuration Release --no-build --output ./nupkgs
 
-      - name: Publish Hitch.Aspire.Hosting
-        uses: brandedoutcast/publish-nuget@v2.5.2
-        with:
-          PROJECT_FILE_PATH: src/Hitch.Aspire.Hosting/Hitch.Aspire.Hosting.csproj
-          NUGET_KEY: ${{secrets.NUGET_API_KEY}}
+      - name: Push Hitch package to NuGet
+        run: dotnet nuget push ./nupkgs/Hitch.*.nupkg --api-key ${{secrets.NUGET_API_KEY}} --source https://api.nuget.org/v3/index.json --skip-duplicate
+
+      - name: Pack Hitch.Aspire.Hosting
+        run: dotnet pack src/Hitch.Aspire.Hosting/Hitch.Aspire.Hosting.csproj --configuration Release --no-build --output ./nupkgs
+
+      - name: Push Hitch.Aspire.Hosting package to NuGet
+        run: dotnet nuget push ./nupkgs/Hitch.Aspire.Hosting.*.nupkg --api-key ${{secrets.NUGET_API_KEY}} --source https://api.nuget.org/v3/index.json --skip-duplicate
