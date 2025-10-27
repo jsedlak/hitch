@@ -4,6 +4,17 @@
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageId>Hitch.Aspire.Hosting</PackageId>
+    <Authors>John Sedlak</Authors>
+    <Description>Aspire hosting package for the Hitch plugin system.</Description>
+		<AssemblyTitle>Hitch.Aspire.Hosting</AssemblyTitle>
+		<AssemblyName>Hitch.Aspire.Hosting</AssemblyName>
+		<PackageTags>plugins;aspire;hosting</PackageTags>
+    <PackageIconUrl>https://raw.githubusercontent.com/jsedlak/hitch/refs/heads/main/icon.png</PackageIconUrl>
+		<PackageProjectUrl>https://github.com/jsedlak/hitch</PackageProjectUrl>
+		<RepositoryUrl>https://github.com/jsedlak/hitch</RepositoryUrl>
+		<Version>9.1.0</Version>
   </PropertyGroup>
 
   <ItemGroup>
