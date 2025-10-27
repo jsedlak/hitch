@@ -111,7 +111,7 @@ public static class HitchResourceBuilderExtensions
     }
 
     // This is like WithReference(...), but for Hitch.
-    public static IResourceBuilder<TConsumer> WithHitchReference<TConsumer>(
+    public static IResourceBuilder<TConsumer> WithReference<TConsumer>(
         this IResourceBuilder<TConsumer> consumer,
         IResourceBuilder<HitchResource> hitch)
         where TConsumer : IResourceWithEnvironment
