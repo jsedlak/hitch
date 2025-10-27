@@ -109,5 +109,24 @@ public static class HitchResourceBuilderExtensions
 
         return builder;
     }
+
+    // This is like WithReference(...), but for Hitch.
+    public static IResourceBuilder<TConsumer> WithHitchReference<TConsumer>(
+        this IResourceBuilder<TConsumer> consumer,
+        IResourceBuilder<HitchResource> hitch)
+        where TConsumer : IResourceWithEnvironment
+    {
+        // We hook an environment callback onto the *consumer*.
+        // At runtime Aspire will evaluate this and add the vars.
+        return consumer.WithEnvironment(ctx =>
+        {
+            // hitch.Resource is the actual HitchResource instance
+            foreach (var (key, value) in hitch.Resource.GetEnvironmentExports())
+            {
+                // Push each one as an env var on the consumer
+                ctx.EnvironmentVariables[key] = value;
+            }
+        });
+    }
 }
 

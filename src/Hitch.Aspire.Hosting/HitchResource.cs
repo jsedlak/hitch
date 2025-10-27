@@ -32,5 +32,21 @@ public class HitchResource : Resource
     public HitchResource(string name) : base(name)
     {
     }
+
+    internal IEnumerable<(string Key, string Value)> GetEnvironmentExports()
+    {
+        // Example strategy, tweak as you like:
+        yield return ("HITCH_ASSEMBLIES", string.Join(';', Assemblies));
+        yield return ("HITCH_FILE_PATTERNS", string.Join(';', FilePatterns));
+
+        // Plugins becomes multiple vars, or one blob. Your call.
+        // Here: one JSON blob called HITCH_PLUGINS
+        var pluginMap = Plugins.ToDictionary(
+            kvp => kvp.Key,
+            kvp => kvp.Value);
+
+        var json = System.Text.Json.JsonSerializer.Serialize(pluginMap);
+        yield return ("HITCH_PLUGINS", json);
+    }
 }
 
