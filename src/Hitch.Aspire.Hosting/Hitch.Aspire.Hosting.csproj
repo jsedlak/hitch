@@ -14,7 +14,7 @@
 		<PackageIconUrl>https://raw.githubusercontent.com/jsedlak/hitch/refs/heads/main/icon.png</PackageIconUrl>
 		<PackageProjectUrl>https://github.com/jsedlak/hitch</PackageProjectUrl>
 		<RepositoryUrl>https://github.com/jsedlak/hitch</RepositoryUrl>
-		<Version>9.1.1</Version>
+		<Version>9.1.2</Version>
     <AutomaticallyUseReferenceAssemblyPackages>true</AutomaticallyUseReferenceAssemblyPackages>
 	</PropertyGroup>
 

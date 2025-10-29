@@ -1,5 +1,6 @@
 namespace Hitch.Tests.TestPlugins;
 
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 /// <summary>
@@ -16,7 +17,7 @@ public class CategorizedTestPluginProvider : IPluginProvider
         AttachCallCount = 0;
     }
 
-    public void Attach(IServiceCollection services, string? name = null)
+    public void Attach(IServiceCollection services, IConfigurationSection configurationSection, string? name = null)
     {
         AttachCallCount++;
         AttachedNames.Add(name ?? "(null)");

@@ -56,9 +56,8 @@ public static class DistributedApplicationExtensions
         builder.AddResource(resource)
             .WithAnnotation(new HitchConfigurationAnnotation(resource));
 
-        // Create the resource builder and automatically publish configuration
+        // Create the resource builder
         var resourceBuilder = new HitchResourceBuilder(builder, resource);
-        resourceBuilder.PublishAsConfiguration();
 
         return resourceBuilder;
     }

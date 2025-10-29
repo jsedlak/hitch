@@ -56,71 +56,33 @@ public static class HitchResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Publishes the Hitch configuration to consuming projects.
+    /// Adds a reference to a Hitch resource from a consumer resource.
+    /// This will automatically inject the Hitch configuration as environment variables.
     /// </summary>
-    /// <param name="builder">The Hitch resource builder.</param>
-    /// <returns>The resource builder for chaining.</returns>
-    public static IHitchResourceBuilder PublishAsConfiguration(this IHitchResourceBuilder builder)
-    {
-        if (builder == null)
-        {
-            throw new ArgumentNullException(nameof(builder));
-        }
-
-        // Add callback to generate configuration
-        builder.WithAnnotation(new EnvironmentCallbackAnnotation(context =>
-        {
-            var resource = builder.Resource;
-
-            // Add assemblies configuration
-            if (resource.Assemblies.Count > 0)
-            {
-                for (int i = 0; i < resource.Assemblies.Count; i++)
-                {
-                    context.EnvironmentVariables[$"Hitch__Configuration__Assemblies__{i}"] = resource.Assemblies[i];
-                }
-            }
-
-            // Add file patterns configuration
-            if (resource.FilePatterns.Count > 0)
-            {
-                for (int i = 0; i < resource.FilePatterns.Count; i++)
-                {
-                    context.EnvironmentVariables[$"Hitch__Configuration__FilePatterns__{i}"] = resource.FilePatterns[i];
-                }
-            }
-
-            // Add plugins configuration
-            foreach (var kvp in resource.Plugins)
-            {
-                var parts = kvp.Key.Split("__");
-                if (parts.Length == 2)
-                {
-                    var category = parts[0];
-                    var subCategory = parts[1];
-
-                    for (int i = 0; i < kvp.Value.Count; i++)
-                    {
-                        context.EnvironmentVariables[$"Hitch__Plugins__{category}__{subCategory}__{i}"] = kvp.Value[i];
-                    }
-                }
-            }
-        }));
-
-        return builder;
-    }
-
-    // This is like WithReference(...), but for Hitch.
+    /// <typeparam name="TConsumer">The type of the consumer resource.</typeparam>
+    /// <param name="consumer">The consumer resource builder.</param>
+    /// <param name="hitch">The Hitch resource builder.</param>
+    /// <returns>The consumer resource builder for chaining.</returns>
     public static IResourceBuilder<TConsumer> WithReference<TConsumer>(
         this IResourceBuilder<TConsumer> consumer,
         IResourceBuilder<HitchResource> hitch)
         where TConsumer : IResourceWithEnvironment
     {
-        // We hook an environment callback onto the *consumer*.
-        // At runtime Aspire will evaluate this and add the vars.
+        if (consumer == null)
+        {
+            throw new ArgumentNullException(nameof(consumer));
+        }
+
+        if (hitch == null)
+        {
+            throw new ArgumentNullException(nameof(hitch));
+        }
+
+        // Hook an environment callback onto the consumer
+        // At runtime Aspire will evaluate this and add the environment variables
         return consumer.WithEnvironment(ctx =>
         {
-            // hitch.Resource is the actual HitchResource instance
+            // Get all environment exports from the Hitch resource
             foreach (var (key, value) in hitch.Resource.GetEnvironmentExports())
             {
                 // Push each one as an env var on the consumer

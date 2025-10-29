@@ -142,10 +142,11 @@ internal sealed class HitchBuilder : IHitchBuilder
         // Process plugins
         foreach (var (attribute, assembly) in plugins)
         {
-            // Case 1: No category - attach with null name
+            // Case 1: No category - attach with null name and empty configuration
             if (string.IsNullOrEmpty(attribute.Category))
             {
-                AttachPlugin(attribute.PluginType, null);
+                var emptySection = _configuration.GetSection("__empty__");
+                AttachPlugin(attribute.PluginType, null, null, null);
             }
             // Case 2: Has category - look for matching configuration
             else
@@ -157,50 +158,79 @@ internal sealed class HitchBuilder : IHitchBuilder
 
     private void ProcessCategorizedPlugin(HitchPluginAttribute attribute, IConfigurationSection hitchConfigSection)
     {
-        // Look for configuration in structure: Hitch:Plugins:[CATEGORY]:[SUBCATEGORY] = [SERVICE NAMES ARRAY]
+        // Look for configuration in structure: Hitch:Plugins:[CATEGORY]:[SUBCATEGORY]:[NAME]
         if (string.IsNullOrEmpty(attribute.Category) || string.IsNullOrEmpty(attribute.SubCategory))
         {
             return;
         }
 
-        // Navigate to Hitch:Plugins:[CATEGORY]
+        // Navigate to Hitch:Plugins:[CATEGORY]:[SUBCATEGORY]
         var categorySection = hitchConfigSection.GetSection(attribute.Category);
         if (!categorySection.Exists())
         {
             return;
         }
 
-        // Get the array of service names at [SUBCATEGORY] key
         var subCategorySection = categorySection.GetSection(attribute.SubCategory);
         if (!subCategorySection.Exists())
         {
             return;
         }
 
-        // The subcategory section should be an array
-        var serviceNames = subCategorySection.Get<string[]>();
-        if (serviceNames != null)
+        // Iterate through all child sections (each is a named instance)
+        foreach (var instanceSection in subCategorySection.GetChildren())
         {
-            foreach (var serviceName in serviceNames)
+            // Support two formats:
+            // 1. New format: Hitch:Plugins:Category:SubCategory:serviceName = "serviceName" (or just serviceName as a section)
+            //    Use the key as the service name
+            // 2. Old format: Hitch:Plugins:Category:SubCategory:0 = "serviceName" (array-style)
+            //    Use the value as the service name
+            
+            string? serviceName = null;
+            var value = instanceSection.Value;
+            
+            if (!string.IsNullOrEmpty(value))
             {
-                if (!string.IsNullOrEmpty(serviceName))
-                {
-                    AttachPlugin(attribute.PluginType, serviceName);
-                }
+                // Old format: value contains the service name
+                serviceName = value;
+            }
+            else if (!string.IsNullOrEmpty(instanceSection.Key) && !int.TryParse(instanceSection.Key, out _))
+            {
+                // New format: key is the service name (and not a numeric index)
+                serviceName = instanceSection.Key;
+            }
+            
+            if (!string.IsNullOrEmpty(serviceName))
+            {
+                AttachPlugin(attribute.PluginType, attribute.Category, attribute.SubCategory, serviceName);
             }
         }
     }
 
-    private void AttachPlugin(Type pluginType, string? name)
+    private void AttachPlugin(Type pluginType, string? category, string? subCategory, string? name)
     {
         try
         {
+            // Construct the configuration section path
+            IConfigurationSection configSection;
+            if (!string.IsNullOrEmpty(category) && !string.IsNullOrEmpty(subCategory) && !string.IsNullOrEmpty(name))
+            {
+                // Path: Hitch:Plugins:{Category}:{SubCategory}:{name}
+                var configPath = $"Hitch:Plugins:{category}:{subCategory}:{name}";
+                configSection = _configuration.GetSection(configPath);
+            }
+            else
+            {
+                // No configuration section for uncategorized plugins
+                configSection = _configuration.GetSection("__empty__");
+            }
+
             // Instantiate the plugin provider
             var pluginInstance = Activator.CreateInstance(pluginType);
             
             if (pluginInstance is IPluginProvider provider)
             {
-                provider.Attach(_services, name);
+                provider.Attach(_services, configSection, name);
             }
             else
             {

@@ -1,5 +1,6 @@
 namespace Hitch;
 
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 /// <summary>
@@ -11,7 +12,8 @@ public interface IPluginProvider
     /// Called to attach the plugin's services to the dependency injection container.
     /// </summary>
     /// <param name="services">The service collection to add services to.</param>
-    /// <param name="name">The name of the plugin.</param>
-    void Attach(IServiceCollection services, string? name = null);
+    /// <param name="configurationSection">The configuration section for this plugin instance.</param>
+    /// <param name="name">The name of the plugin instance.</param>
+    void Attach(IServiceCollection services, IConfigurationSection configurationSection, string? name = null);
 }
 

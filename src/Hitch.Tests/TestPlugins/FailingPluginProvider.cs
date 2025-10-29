@@ -1,5 +1,6 @@
 namespace Hitch.Tests.TestPlugins;
 
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 /// <summary>
@@ -7,7 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 /// </summary>
 public class FailingPluginProvider : IPluginProvider
 {
-    public void Attach(IServiceCollection services, string? name = null)
+    public void Attach(IServiceCollection services, IConfigurationSection configurationSection, string? name = null)
     {
         throw new InvalidOperationException("Test exception from plugin");
     }

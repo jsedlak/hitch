@@ -166,37 +166,5 @@ public class HitchResourceBuilderExtensionsTests
         // Assert
         Assert.Same(resourceBuilder, result);
     }
-
-    [Fact]
-    public void PublishAsConfiguration_AddsEnvironmentCallbackAnnotation()
-    {
-        // Arrange
-        var builder = DistributedApplication.CreateBuilder();
-        var resourceBuilder = builder.AddHitch(b =>
-        {
-            b.WithAssemblies(typeof(HitchResourceBuilderExtensionsTests).Assembly);
-            b.WithFilePattern("*.dll");
-        }).WithPlugin("Database", "Postgres", "Service1");
-
-        // Act
-        var result = resourceBuilder.PublishAsConfiguration();
-
-        // Assert
-        Assert.NotNull(result);
-        Assert.Same(resourceBuilder, result);
-        // Verify annotation was added
-        var annotations = resourceBuilder.Resource.Annotations;
-        Assert.NotEmpty(annotations);
-    }
-
-    [Fact]
-    public void PublishAsConfiguration_NullBuilder_ThrowsArgumentNullException()
-    {
-        // Arrange
-        IHitchResourceBuilder builder = null!;
-
-        // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => builder.PublishAsConfiguration());
-    }
 }
 
