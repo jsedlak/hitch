@@ -14,12 +14,14 @@ public static class HitchResourceBuilderExtensions
     /// <param name="category">The plugin category.</param>
     /// <param name="subCategory">The plugin subcategory.</param>
     /// <param name="serviceName">The service name for this plugin instance.</param>
+    /// <param name="configurations">Optional dictionary of configuration key-value pairs for the plugin instance.</param>
     /// <returns>The resource builder for chaining.</returns>
     public static IHitchResourceBuilder WithPlugin(
         this IHitchResourceBuilder builder,
         string category,
         string subCategory,
-        string serviceName)
+        string serviceName,
+        IDictionary<string, object>? configurations = null)
     {
         if (builder == null)
         {
@@ -50,6 +52,22 @@ public static class HitchResourceBuilderExtensions
         if (!builder.Resource.Plugins[key].Contains(serviceName))
         {
             builder.Resource.Plugins[key].Add(serviceName);
+        }
+
+        // Add plugin configurations if provided
+        if (configurations != null && configurations.Count > 0)
+        {
+            var configKey = $"{category}__{subCategory}__{serviceName}";
+            if (!builder.Resource.PluginConfigurations.ContainsKey(configKey))
+            {
+                builder.Resource.PluginConfigurations[configKey] = new Dictionary<string, object>();
+            }
+
+            var config = builder.Resource.PluginConfigurations[configKey];
+            foreach (var kvp in configurations)
+            {
+                config[kvp.Key] = kvp.Value;
+            }
         }
 
         return builder;
