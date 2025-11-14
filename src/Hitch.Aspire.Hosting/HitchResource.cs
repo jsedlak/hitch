@@ -1,4 +1,4 @@
-namespace Hitch.Aspire.Hosting;
+namespace Aspire.Hosting;
 
 using global::Aspire.Hosting.ApplicationModel;
 using System.Collections.Generic;

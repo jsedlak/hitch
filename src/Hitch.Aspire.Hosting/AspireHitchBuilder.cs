@@ -1,5 +1,6 @@
-namespace Hitch.Aspire.Hosting;
+namespace Aspire.Hosting;
 
+using Hitch;
 using System.Reflection;
 
 /// <summary>

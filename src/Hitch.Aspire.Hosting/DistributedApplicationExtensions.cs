@@ -1,7 +1,8 @@
-namespace Hitch.Aspire.Hosting;
+namespace Aspire.Hosting;
 
 using global::Aspire.Hosting;
 using global::Aspire.Hosting.ApplicationModel;
+using Hitch;
 
 /// <summary>
 /// Extension methods for <see cref="IDistributedApplicationBuilder"/> to add Hitch configuration.
