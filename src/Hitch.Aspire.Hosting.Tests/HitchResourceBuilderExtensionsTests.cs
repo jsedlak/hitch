@@ -166,5 +166,21 @@ public class HitchResourceBuilderExtensionsTests
         // Assert
         Assert.Same(resourceBuilder, result);
     }
+
+    [Fact]
+    public void WithPlugin_WithPlugin_StampsOwnerDiscriminator()
+    {
+        // Arrange
+        var builder = DistributedApplication.CreateBuilder();
+        var resourceBuilder = builder.AddHitch();
+
+        // Act
+        resourceBuilder.WithPlugin("Covalent", "Responses", "azure-foundry", plugin: "Foundry");
+
+        // Assert
+        var configKey = "Covalent__Responses__azure-foundry";
+        Assert.True(resourceBuilder.Resource.PluginConfigurations.ContainsKey(configKey));
+        Assert.Equal("Foundry", resourceBuilder.Resource.PluginConfigurations[configKey]["$plugin"]);
+    }
 }
 

@@ -23,6 +23,14 @@ public sealed class HitchPluginAttribute : Attribute
     public string? SubCategory { get; }
 
     /// <summary>
+    /// Gets or sets a stable alias used to route a configured instance to its owning builder
+    /// when multiple plugins share the same <see cref="Category"/>/<see cref="SubCategory"/>.
+    /// An instance declares its owner via the reserved <c>$plugin</c> config key.
+    /// When omitted, the plugin matches on <see cref="Type.FullName"/> (or <see cref="MemberInfo.Name"/>) of <see cref="PluginType"/>.
+    /// </summary>
+    public string? Alias { get; set; }
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="HitchPluginAttribute"/> class.
     /// </summary>
     /// <param name="pluginType">The type that implements <see cref="IPluginProvider"/>.</param>

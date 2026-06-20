@@ -140,38 +140,44 @@ internal sealed class HitchBuilder : IHitchBuilder
         var hitchConfigSection = _configuration.GetSection("Hitch:Plugins");
 
         // Process plugins
+        var categorized = new List<HitchPluginAttribute>();
         foreach (var (attribute, assembly) in plugins)
         {
             // Case 1: No category - attach with null name and empty configuration
             if (string.IsNullOrEmpty(attribute.Category))
             {
-                var emptySection = _configuration.GetSection("__empty__");
                 AttachPlugin(attribute.PluginType, null, null, null);
             }
-            // Case 2: Has category - look for matching configuration
-            else
+            // Case 2: Has category - defer for grouped, per-instance routing
+            else if (!string.IsNullOrEmpty(attribute.SubCategory))
             {
-                ProcessCategorizedPlugin(attribute, hitchConfigSection);
+                categorized.Add(attribute);
             }
+        }
+
+        // Group categorized plugins by (Category, SubCategory). Multiple builders can share a
+        // subcategory; each configured instance is routed to a single owning builder so builders
+        // no longer cross-register over each other's keys.
+        foreach (var group in categorized.GroupBy(a => (a.Category!, a.SubCategory!)))
+        {
+            ProcessCategorizedGroup(group.Key.Item1, group.Key.Item2, group.ToList(), hitchConfigSection);
         }
     }
 
-    private void ProcessCategorizedPlugin(HitchPluginAttribute attribute, IConfigurationSection hitchConfigSection)
+    private void ProcessCategorizedGroup(
+        string category,
+        string subCategory,
+        IReadOnlyList<HitchPluginAttribute> candidates,
+        IConfigurationSection hitchConfigSection)
     {
-        // Look for configuration in structure: Hitch:Plugins:[CATEGORY]:[SUBCATEGORY]:[NAME]
-        if (string.IsNullOrEmpty(attribute.Category) || string.IsNullOrEmpty(attribute.SubCategory))
-        {
-            return;
-        }
-
         // Navigate to Hitch:Plugins:[CATEGORY]:[SUBCATEGORY]
-        var categorySection = hitchConfigSection.GetSection(attribute.Category);
+        var categorySection = hitchConfigSection.GetSection(category);
         if (!categorySection.Exists())
         {
             return;
         }
 
-        var subCategorySection = categorySection.GetSection(attribute.SubCategory);
+        var subCategorySection = categorySection.GetSection(subCategory);
         if (!subCategorySection.Exists())
         {
             return;
@@ -185,10 +191,10 @@ internal sealed class HitchBuilder : IHitchBuilder
             //    Use the key as the service name
             // 2. Old format: Hitch:Plugins:Category:SubCategory:0 = "serviceName" (array-style)
             //    Use the value as the service name
-            
+
             string? serviceName = null;
             var value = instanceSection.Value;
-            
+
             if (!string.IsNullOrEmpty(value))
             {
                 // Old format: value contains the service name
@@ -199,12 +205,49 @@ internal sealed class HitchBuilder : IHitchBuilder
                 // New format: key is the service name (and not a numeric index)
                 serviceName = instanceSection.Key;
             }
-            
-            if (!string.IsNullOrEmpty(serviceName))
+
+            if (string.IsNullOrEmpty(serviceName))
             {
-                AttachPlugin(attribute.PluginType, attribute.Category, attribute.SubCategory, serviceName);
+                continue;
+            }
+
+            // Route the instance to its owning builder. The instance may declare an owner via the
+            // reserved "$plugin" key (matched against each candidate's Alias / type name).
+            var owner = instanceSection["$plugin"];
+
+            if (!string.IsNullOrEmpty(owner))
+            {
+                var match = candidates.FirstOrDefault(a => AliasMatches(a, owner));
+                if (match is null)
+                {
+                    Console.Error.WriteLine(
+                        $"[Hitch] No plugin '{owner}' registered for {category}:{subCategory}:{serviceName}; skipping.");
+                    continue;
+                }
+
+                AttachPlugin(match.PluginType, category, subCategory, serviceName);
+            }
+            else if (candidates.Count == 1)
+            {
+                // Unambiguous: a single builder owns the subcategory.
+                AttachPlugin(candidates[0].PluginType, category, subCategory, serviceName);
+            }
+            else
+            {
+                // Ambiguous: more than one builder and the instance declares no owner.
+                Console.Error.WriteLine(
+                    $"[Hitch] {category}:{subCategory}:{serviceName} matches {candidates.Count} plugins and declares no '$plugin'; skipping.");
             }
         }
+    }
+
+    private static bool AliasMatches(HitchPluginAttribute attribute, string owner)
+    {
+        // A declared alias is the durable identity; the CLR type name (full or simple) is always
+        // accepted as a fallback so the class name keeps working when no alias is declared.
+        return (!string.IsNullOrEmpty(attribute.Alias) && string.Equals(attribute.Alias, owner, StringComparison.OrdinalIgnoreCase))
+            || string.Equals(attribute.PluginType.FullName, owner, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(attribute.PluginType.Name, owner, StringComparison.OrdinalIgnoreCase);
     }
 
     private void AttachPlugin(Type pluginType, string? category, string? subCategory, string? name)

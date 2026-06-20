@@ -2,40 +2,68 @@ name: Publish Packages
 
 on:
   workflow_dispatch: # Allow running the workflow manually from the GitHub UI
-  push:
-    tags:
-      - "v*"
+  release:
+    types: [published]
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: read
+      id-token: write # Required for NuGet Trusted Publishing (OIDC token issuance)
+
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
+
+      - name: Read version
+        id: version
+        run: echo "version=$(tr -d '[:space:]' < .changes/.version)" >> "$GITHUB_OUTPUT"
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 9.0.x
+          dotnet-version: 10.0.x
 
       - name: Install dependencies
         run: dotnet restore
 
       - name: Build
-        run: dotnet build --configuration Release --no-restore
+        run: >-
+          dotnet build --configuration Release --no-restore
+          -p:Version=${{ steps.version.outputs.version }}
 
       - name: Test
-        run: dotnet test --configuration Release --no-restore
+        run: dotnet test --configuration Release --no-build
 
       - name: Pack Hitch
-        run: dotnet pack src/Hitch/Hitch.csproj --configuration Release --no-build --output ./nupkgs
-
-      - name: Push Hitch package to NuGet
-        run: dotnet nuget push ./nupkgs/Hitch.*.nupkg --api-key ${{secrets.NUGET_API_KEY}} --source https://api.nuget.org/v3/index.json --skip-duplicate
+        run: >-
+          dotnet pack src/Hitch/Hitch.csproj
+          --configuration Release
+          --no-build
+          -p:Version=${{ steps.version.outputs.version }}
+          --output ${{ runner.temp }}/packages
 
       - name: Pack Hitch.Aspire.Hosting
-        run: dotnet pack src/Hitch.Aspire.Hosting/Hitch.Aspire.Hosting.csproj --configuration Release --no-build --output ./nupkgs
+        run: >-
+          dotnet pack src/Hitch.Aspire.Hosting/Hitch.Aspire.Hosting.csproj
+          --configuration Release
+          --no-build
+          -p:Version=${{ steps.version.outputs.version }}
+          --output ${{ runner.temp }}/packages
 
-      - name: Push Hitch.Aspire.Hosting package to NuGet
-        run: dotnet nuget push ./nupkgs/Hitch.Aspire.Hosting.*.nupkg --api-key ${{secrets.NUGET_API_KEY}} --source https://api.nuget.org/v3/index.json --skip-duplicate
+      # Exchange the GitHub OIDC token for a short-lived nuget.org API key.
+      # Requires a Trusted Publishing policy on nuget.org for this repo + workflow.
+      - name: NuGet login (OIDC -> temp API key)
+        uses: NuGet/login@v1
+        id: login
+        with:
+          user: jsedlak # nuget.org username (profile name); swap for ${{ secrets.NUGET_USER }} if preferred
+
+      - name: Publish packages
+        run: >-
+          dotnet nuget push ${{ runner.temp }}/packages/*.nupkg
+          --api-key ${{ steps.login.outputs.NUGET_API_KEY }}
+          --source https://api.nuget.org/v3/index.json
+          --skip-duplicate

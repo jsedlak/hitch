@@ -15,13 +15,19 @@ public static class HitchResourceBuilderExtensions
     /// <param name="subCategory">The plugin subcategory.</param>
     /// <param name="serviceName">The service name for this plugin instance.</param>
     /// <param name="configurations">Optional dictionary of configuration key-value pairs for the plugin instance.</param>
+    /// <param name="plugin">
+    /// Optional alias (or type name) of the owning plugin builder. Required to disambiguate when
+    /// multiple plugins share the same <paramref name="category"/>/<paramref name="subCategory"/>;
+    /// stamped into the instance config as the reserved <c>$plugin</c> key.
+    /// </param>
     /// <returns>The resource builder for chaining.</returns>
     public static IHitchResourceBuilder WithPlugin(
         this IHitchResourceBuilder builder,
         string category,
         string subCategory,
         string serviceName,
-        IDictionary<string, object>? configurations = null)
+        IDictionary<string, object>? configurations = null,
+        string? plugin = null)
     {
         if (builder == null)
         {
@@ -54,8 +60,8 @@ public static class HitchResourceBuilderExtensions
             builder.Resource.Plugins[key].Add(serviceName);
         }
 
-        // Add plugin configurations if provided
-        if (configurations != null && configurations.Count > 0)
+        // Add plugin configurations if provided, plus the owning-plugin discriminator.
+        if ((configurations != null && configurations.Count > 0) || !string.IsNullOrWhiteSpace(plugin))
         {
             var configKey = $"{category}__{subCategory}__{serviceName}";
             if (!builder.Resource.PluginConfigurations.ContainsKey(configKey))
@@ -64,9 +70,19 @@ public static class HitchResourceBuilderExtensions
             }
 
             var config = builder.Resource.PluginConfigurations[configKey];
-            foreach (var kvp in configurations)
+
+            if (configurations != null)
             {
-                config[kvp.Key] = kvp.Value;
+                foreach (var kvp in configurations)
+                {
+                    config[kvp.Key] = kvp.Value;
+                }
+            }
+
+            // Route this instance to its owning builder when the subcategory is shared.
+            if (!string.IsNullOrWhiteSpace(plugin))
+            {
+                config["$plugin"] = plugin;
             }
         }
 
