@@ -29,7 +29,7 @@ public class ConfigurationBasedPluginLoadingTests : IDisposable
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["Hitch:Plugins:Database:Postgres:0"] = "MyPostgresConnection"
+                ["Hitch:Plugins:Database:Postgres:MyPostgresConnection:$plugin"] = "Categorized"
             })
             .Build();
         services.AddSingleton<IConfiguration>(configuration);
@@ -55,9 +55,9 @@ public class ConfigurationBasedPluginLoadingTests : IDisposable
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["Hitch:Plugins:Database:Postgres:0"] = "Connection1",
-                ["Hitch:Plugins:Database:Postgres:1"] = "Connection2",
-                ["Hitch:Plugins:Database:Postgres:2"] = "Connection3"
+                ["Hitch:Plugins:Database:Postgres:Connection1:$plugin"] = "Categorized",
+                ["Hitch:Plugins:Database:Postgres:Connection2:$plugin"] = "Categorized",
+                ["Hitch:Plugins:Database:Postgres:Connection3:$plugin"] = "Categorized"
             })
             .Build();
         services.AddSingleton<IConfiguration>(configuration);
@@ -175,7 +175,10 @@ public class ConfigurationBasedPluginLoadingTests : IDisposable
   ""Hitch"": {
     ""Plugins"": {
       ""Database"": {
-        ""Postgres"": [""ServiceA"", ""ServiceB""]
+        ""Postgres"": {
+          ""ServiceA"": { ""$plugin"": ""Categorized"" },
+          ""ServiceB"": { ""$plugin"": ""Categorized"" }
+        }
       }
     }
   }
@@ -219,7 +222,7 @@ public class ConfigurationBasedPluginLoadingTests : IDisposable
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["Hitch:Plugins:Database:Postgres:0"] = "MyConnection"
+                ["Hitch:Plugins:Database:Postgres:MyConnection:$plugin"] = "Categorized"
             })
             .Build();
         services.AddSingleton<IConfiguration>(configuration);

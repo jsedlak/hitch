@@ -13,7 +13,7 @@ public class HitchResourceBuilderExtensionsTests
         var resourceBuilder = builder.AddHitch();
 
         // Act
-        resourceBuilder.WithPlugin("Database", "Postgres", "Service1");
+        resourceBuilder.WithPlugin("Database", "Postgres", "Service1", "Pg");
 
         // Assert
         var key = "Database__Postgres";
@@ -30,9 +30,9 @@ public class HitchResourceBuilderExtensionsTests
 
         // Act
         resourceBuilder
-            .WithPlugin("Database", "Postgres", "Service1")
-            .WithPlugin("Database", "Postgres", "Service2")
-            .WithPlugin("Database", "Postgres", "Service3");
+            .WithPlugin("Database", "Postgres", "Service1", "Pg")
+            .WithPlugin("Database", "Postgres", "Service2", "Pg")
+            .WithPlugin("Database", "Postgres", "Service3", "Pg");
 
         // Assert
         var key = "Database__Postgres";
@@ -51,9 +51,9 @@ public class HitchResourceBuilderExtensionsTests
 
         // Act
         resourceBuilder
-            .WithPlugin("Database", "Postgres", "Service1")
-            .WithPlugin("Database", "Postgres", "Service1")
-            .WithPlugin("Database", "Postgres", "Service1");
+            .WithPlugin("Database", "Postgres", "Service1", "Pg")
+            .WithPlugin("Database", "Postgres", "Service1", "Pg")
+            .WithPlugin("Database", "Postgres", "Service1", "Pg");
 
         // Assert
         var key = "Database__Postgres";
@@ -70,9 +70,9 @@ public class HitchResourceBuilderExtensionsTests
 
         // Act
         resourceBuilder
-            .WithPlugin("Database", "Postgres", "PgService")
-            .WithPlugin("Database", "MySQL", "MySqlService")
-            .WithPlugin("Storage", "S3", "S3Service");
+            .WithPlugin("Database", "Postgres", "PgService", "Pg")
+            .WithPlugin("Database", "MySQL", "MySqlService", "MySql")
+            .WithPlugin("Storage", "S3", "S3Service", "S3");
 
         // Assert
         Assert.Equal(3, resourceBuilder.Resource.Plugins.Count);
@@ -90,7 +90,7 @@ public class HitchResourceBuilderExtensionsTests
 
         // Act & Assert
         Assert.Throws<ArgumentException>(() =>
-            resourceBuilder.WithPlugin(null!, "SubCategory", "Service"));
+            resourceBuilder.WithPlugin(null!, "SubCategory", "Service", "Plug"));
     }
 
     [Fact]
@@ -102,7 +102,7 @@ public class HitchResourceBuilderExtensionsTests
 
         // Act & Assert
         Assert.Throws<ArgumentException>(() =>
-            resourceBuilder.WithPlugin("Category", null!, "Service"));
+            resourceBuilder.WithPlugin("Category", null!, "Service", "Plug"));
     }
 
     [Fact]
@@ -114,7 +114,19 @@ public class HitchResourceBuilderExtensionsTests
 
         // Act & Assert
         Assert.Throws<ArgumentException>(() =>
-            resourceBuilder.WithPlugin("Category", "SubCategory", null!));
+            resourceBuilder.WithPlugin("Category", "SubCategory", null!, "Plug"));
+    }
+
+    [Fact]
+    public void WithPlugin_NullPlugin_ThrowsArgumentException()
+    {
+        // Arrange
+        var builder = DistributedApplication.CreateBuilder();
+        var resourceBuilder = builder.AddHitch();
+
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() =>
+            resourceBuilder.WithPlugin("Category", "SubCategory", "Service", null!));
     }
 
     [Fact]
@@ -126,7 +138,7 @@ public class HitchResourceBuilderExtensionsTests
 
         // Act & Assert
         Assert.Throws<ArgumentException>(() =>
-            resourceBuilder.WithPlugin("", "SubCategory", "Service"));
+            resourceBuilder.WithPlugin("", "SubCategory", "Service", "Plug"));
     }
 
     [Fact]
@@ -138,7 +150,7 @@ public class HitchResourceBuilderExtensionsTests
 
         // Act & Assert
         Assert.Throws<ArgumentException>(() =>
-            resourceBuilder.WithPlugin("Category", "", "Service"));
+            resourceBuilder.WithPlugin("Category", "", "Service", "Plug"));
     }
 
     [Fact]
@@ -150,7 +162,19 @@ public class HitchResourceBuilderExtensionsTests
 
         // Act & Assert
         Assert.Throws<ArgumentException>(() =>
-            resourceBuilder.WithPlugin("Category", "SubCategory", ""));
+            resourceBuilder.WithPlugin("Category", "SubCategory", "", "Plug"));
+    }
+
+    [Fact]
+    public void WithPlugin_EmptyPlugin_ThrowsArgumentException()
+    {
+        // Arrange
+        var builder = DistributedApplication.CreateBuilder();
+        var resourceBuilder = builder.AddHitch();
+
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() =>
+            resourceBuilder.WithPlugin("Category", "SubCategory", "Service", ""));
     }
 
     [Fact]
@@ -161,21 +185,21 @@ public class HitchResourceBuilderExtensionsTests
         var resourceBuilder = builder.AddHitch();
 
         // Act
-        var result = resourceBuilder.WithPlugin("Database", "Postgres", "Service1");
+        var result = resourceBuilder.WithPlugin("Database", "Postgres", "Service1", "Pg");
 
         // Assert
         Assert.Same(resourceBuilder, result);
     }
 
     [Fact]
-    public void WithPlugin_WithPlugin_StampsOwnerDiscriminator()
+    public void WithPlugin_StampsOwnerDiscriminator()
     {
         // Arrange
         var builder = DistributedApplication.CreateBuilder();
         var resourceBuilder = builder.AddHitch();
 
         // Act
-        resourceBuilder.WithPlugin("Covalent", "Responses", "azure-foundry", plugin: "Foundry");
+        resourceBuilder.WithPlugin("Covalent", "Responses", "azure-foundry", "Foundry");
 
         // Assert
         var configKey = "Covalent__Responses__azure-foundry";
@@ -183,4 +207,3 @@ public class HitchResourceBuilderExtensionsTests
         Assert.Equal("Foundry", resourceBuilder.Resource.PluginConfigurations[configKey]["$plugin"]);
     }
 }
-

@@ -211,43 +211,47 @@ internal sealed class HitchBuilder : IHitchBuilder
                 continue;
             }
 
-            // Route the instance to its owning builder. The instance may declare an owner via the
-            // reserved "$plugin" key (matched against each candidate's Alias / type name).
+            // Route the instance to its owning builder. Every categorized instance must name its
+            // owner via the reserved "$plugin" key, matched against each candidate's PluginName.
             var owner = instanceSection["$plugin"];
 
-            if (!string.IsNullOrEmpty(owner))
+            if (string.IsNullOrEmpty(owner))
             {
-                var match = candidates.FirstOrDefault(a => AliasMatches(a, owner));
-                if (match is null)
-                {
-                    Console.Error.WriteLine(
-                        $"[Hitch] No plugin '{owner}' registered for {category}:{subCategory}:{serviceName}; skipping.");
-                    continue;
-                }
+                throw new InvalidOperationException(
+                    $"[Hitch] {category}:{subCategory}:{serviceName} declares no '$plugin'. Every configured " +
+                    $"instance in a categorized bucket must name its owning builder via the reserved '$plugin' " +
+                    $"key. Registered plugins for this bucket: {DescribeCandidates(candidates)}.");
+            }
 
-                AttachPlugin(match.PluginType, category, subCategory, serviceName);
-            }
-            else if (candidates.Count == 1)
+            var matches = candidates.Where(a => PluginNameMatches(a, owner)).ToList();
+
+            if (matches.Count == 0)
             {
-                // Unambiguous: a single builder owns the subcategory.
-                AttachPlugin(candidates[0].PluginType, category, subCategory, serviceName);
+                throw new InvalidOperationException(
+                    $"[Hitch] {category}:{subCategory}:{serviceName} names plugin '{owner}', which is not " +
+                    $"registered for this bucket. Registered plugins: {DescribeCandidates(candidates)}.");
             }
-            else
+
+            if (matches.Count > 1)
             {
-                // Ambiguous: more than one builder and the instance declares no owner.
-                Console.Error.WriteLine(
-                    $"[Hitch] {category}:{subCategory}:{serviceName} matches {candidates.Count} plugins and declares no '$plugin'; skipping.");
+                throw new InvalidOperationException(
+                    $"[Hitch] {category}:{subCategory} has {matches.Count} builders named '{owner}'. " +
+                    $"PluginName must be unique within a (Category, SubCategory).");
             }
+
+            AttachPlugin(matches[0].PluginType, category, subCategory, serviceName);
         }
     }
 
-    private static bool AliasMatches(HitchPluginAttribute attribute, string owner)
+    private static bool PluginNameMatches(HitchPluginAttribute attribute, string owner)
     {
-        // A declared alias is the durable identity; the CLR type name (full or simple) is always
-        // accepted as a fallback so the class name keeps working when no alias is declared.
-        return (!string.IsNullOrEmpty(attribute.Alias) && string.Equals(attribute.Alias, owner, StringComparison.OrdinalIgnoreCase))
-            || string.Equals(attribute.PluginType.FullName, owner, StringComparison.OrdinalIgnoreCase)
-            || string.Equals(attribute.PluginType.Name, owner, StringComparison.OrdinalIgnoreCase);
+        return !string.IsNullOrEmpty(attribute.PluginName)
+            && string.Equals(attribute.PluginName, owner, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string DescribeCandidates(IReadOnlyList<HitchPluginAttribute> candidates)
+    {
+        return string.Join(", ", candidates.Select(a => $"'{a.PluginName}'"));
     }
 
     private void AttachPlugin(Type pluginType, string? category, string? subCategory, string? name)

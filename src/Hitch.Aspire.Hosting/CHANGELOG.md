@@ -1,6 +1,6 @@
 ## Unreleased
 
-- Adds an optional `plugin` parameter to `WithPlugin(...)` that stamps the owning-builder discriminator (`$plugin`) into an instance's config, disambiguating instances when multiple plugins share a `(Category, SubCategory)`.
+- **Breaking:** `WithPlugin(...)` now takes a required `plugin` parameter (the owning builder's `PluginName`), positioned before the optional `configurations`. It is always stamped into the instance config as the reserved `$plugin` discriminator so every instance routes to exactly one builder. Update call sites from `WithPlugin(cat, sub, name)` / `WithPlugin(cat, sub, name, configs, plugin: "X")` to `WithPlugin(cat, sub, name, "X", configs)`.
 
 ## 10.0.0
 

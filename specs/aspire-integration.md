@@ -11,7 +11,7 @@ distributedBuilder.AddHitch(builder => {
 
     builder.WithFilePattern("*.Hitch.Plugin.dll");
 })
-    .WithPlugin("Category", "SubCategory", "Service Name")
+    .WithPlugin("Category", "SubCategory", "Service Name", "PluginName")
 ```
 
 This should output configuration compatible with [adding-hitch.md](adding-hitch.md).

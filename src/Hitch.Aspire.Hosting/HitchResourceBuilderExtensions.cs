@@ -14,20 +14,21 @@ public static class HitchResourceBuilderExtensions
     /// <param name="category">The plugin category.</param>
     /// <param name="subCategory">The plugin subcategory.</param>
     /// <param name="serviceName">The service name for this plugin instance.</param>
-    /// <param name="configurations">Optional dictionary of configuration key-value pairs for the plugin instance.</param>
     /// <param name="plugin">
-    /// Optional alias (or type name) of the owning plugin builder. Required to disambiguate when
-    /// multiple plugins share the same <paramref name="category"/>/<paramref name="subCategory"/>;
-    /// stamped into the instance config as the reserved <c>$plugin</c> key.
+    /// The <see cref="HitchPluginAttribute.PluginName"/> of the owning plugin builder. Required:
+    /// stamped into the instance config as the reserved <c>$plugin</c> key so Hitch routes this
+    /// instance to exactly one builder, even when several share the
+    /// <paramref name="category"/>/<paramref name="subCategory"/>.
     /// </param>
+    /// <param name="configurations">Optional dictionary of configuration key-value pairs for the plugin instance.</param>
     /// <returns>The resource builder for chaining.</returns>
     public static IHitchResourceBuilder WithPlugin(
         this IHitchResourceBuilder builder,
         string category,
         string subCategory,
         string serviceName,
-        IDictionary<string, object>? configurations = null,
-        string? plugin = null)
+        string plugin,
+        IDictionary<string, object>? configurations = null)
     {
         if (builder == null)
         {
@@ -49,6 +50,11 @@ public static class HitchResourceBuilderExtensions
             throw new ArgumentException("Service name cannot be null or whitespace.", nameof(serviceName));
         }
 
+        if (string.IsNullOrWhiteSpace(plugin))
+        {
+            throw new ArgumentException("Plugin cannot be null or whitespace.", nameof(plugin));
+        }
+
         var key = $"{category}__{subCategory}";
         if (!builder.Resource.Plugins.ContainsKey(key))
         {
@@ -60,31 +66,25 @@ public static class HitchResourceBuilderExtensions
             builder.Resource.Plugins[key].Add(serviceName);
         }
 
-        // Add plugin configurations if provided, plus the owning-plugin discriminator.
-        if ((configurations != null && configurations.Count > 0) || !string.IsNullOrWhiteSpace(plugin))
+        // Stamp the owning-plugin discriminator (always present) plus any instance configuration.
+        var configKey = $"{category}__{subCategory}__{serviceName}";
+        if (!builder.Resource.PluginConfigurations.ContainsKey(configKey))
         {
-            var configKey = $"{category}__{subCategory}__{serviceName}";
-            if (!builder.Resource.PluginConfigurations.ContainsKey(configKey))
-            {
-                builder.Resource.PluginConfigurations[configKey] = new Dictionary<string, object>();
-            }
+            builder.Resource.PluginConfigurations[configKey] = new Dictionary<string, object>();
+        }
 
-            var config = builder.Resource.PluginConfigurations[configKey];
+        var config = builder.Resource.PluginConfigurations[configKey];
 
-            if (configurations != null)
+        if (configurations != null)
+        {
+            foreach (var kvp in configurations)
             {
-                foreach (var kvp in configurations)
-                {
-                    config[kvp.Key] = kvp.Value;
-                }
-            }
-
-            // Route this instance to its owning builder when the subcategory is shared.
-            if (!string.IsNullOrWhiteSpace(plugin))
-            {
-                config["$plugin"] = plugin;
+                config[kvp.Key] = kvp.Value;
             }
         }
+
+        // Route this instance to its owning builder.
+        config["$plugin"] = plugin;
 
         return builder;
     }

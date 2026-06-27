@@ -47,40 +47,39 @@ public class SharedSubcategoryRoutingTests : IDisposable
     }
 
     [Fact]
-    public void InstanceWithoutOwnerInSharedSubcategoryIsSkipped()
+    public void InstanceWithoutOwnerThrows()
     {
-        Build(new Dictionary<string, string?>
+        // Every categorized instance must name its owner via $plugin — absence is a loud error.
+        var ex = Assert.Throws<InvalidOperationException>(() => Build(new Dictionary<string, string?>
         {
             ["Hitch:Plugins:Shared:Providers:orphan:SomeKey"] = "value",
-        });
+        }));
 
+        Assert.Contains("declares no '$plugin'", ex.Message);
         Assert.Equal(0, AlphaProviderBuilder.AttachCallCount);
         Assert.Equal(0, BetaProviderBuilder.AttachCallCount);
     }
 
     [Fact]
-    public void UnknownOwnerIsSkipped()
+    public void UnknownOwnerThrows()
     {
-        Build(new Dictionary<string, string?>
+        var ex = Assert.Throws<InvalidOperationException>(() => Build(new Dictionary<string, string?>
         {
             ["Hitch:Plugins:Shared:Providers:weird:$plugin"] = "DoesNotExist",
-        });
+        }));
 
+        Assert.Contains("not registered for this bucket", ex.Message);
         Assert.Equal(0, AlphaProviderBuilder.AttachCallCount);
         Assert.Equal(0, BetaProviderBuilder.AttachCallCount);
     }
 
     [Fact]
-    public void OwnerMatchesOnTypeNameWhenAliasFallbackUsed()
+    public void TypeNameIsNoLongerAcceptedAsOwner()
     {
-        // "BetaProviderBuilder" is the CLR type name; aliases are declared, but the type name
-        // remains a valid fallback identifier.
-        Build(new Dictionary<string, string?>
+        // PluginName is the only routing identity; the CLR type name is no longer a fallback.
+        Assert.Throws<InvalidOperationException>(() => Build(new Dictionary<string, string?>
         {
             ["Hitch:Plugins:Shared:Providers:by-type:$plugin"] = "BetaProviderBuilder",
-        });
-
-        Assert.Equal(new[] { "by-type" }, BetaProviderBuilder.AttachedNames);
-        Assert.Equal(0, AlphaProviderBuilder.AttachCallCount);
+        }));
     }
 }

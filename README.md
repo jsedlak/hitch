@@ -42,7 +42,7 @@ builder.Services.AddHitch();
 For plugin developers, DLLs are auto detected based on pattern and `HitchPlugin` assembly attributes are used to activate provider builder objects.
 
 ```csharp
-[assembly: HitchPlugin("Tool", "Storyblok", typeof(StoryblokToolProviderBuilder))]
+[assembly: HitchPlugin("Tool", "Storyblok", "Storyblok", typeof(StoryblokToolProviderBuilder))]
 ```
 
 This type uses the `IPluginProvider` interface to receive the data from Hitch that was configured as part of the AppHost.

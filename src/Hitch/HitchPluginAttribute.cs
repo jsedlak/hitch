@@ -23,15 +23,15 @@ public sealed class HitchPluginAttribute : Attribute
     public string? SubCategory { get; }
 
     /// <summary>
-    /// Gets or sets a stable alias used to route a configured instance to its owning builder
-    /// when multiple plugins share the same <see cref="Category"/>/<see cref="SubCategory"/>.
-    /// An instance declares its owner via the reserved <c>$plugin</c> config key.
-    /// When omitted, the plugin matches on <see cref="Type.FullName"/> (or <see cref="MemberInfo.Name"/>) of <see cref="PluginType"/>.
+    /// Gets the stable, first-party identity of this builder within its
+    /// <see cref="Category"/>/<see cref="SubCategory"/>. A configured instance routes to this
+    /// builder by naming it in the reserved <c>$plugin</c> config key. Required for categorized
+    /// plugins; <c>null</c> for uncategorized ones. Must be unique among builders sharing a bucket.
     /// </summary>
-    public string? Alias { get; set; }
+    public string? PluginName { get; }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="HitchPluginAttribute"/> class.
+    /// Initializes a new uncategorized plugin.
     /// </summary>
     /// <param name="pluginType">The type that implements <see cref="IPluginProvider"/>.</param>
     public HitchPluginAttribute(Type pluginType)
@@ -40,16 +40,32 @@ public sealed class HitchPluginAttribute : Attribute
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="HitchPluginAttribute"/> class with category identification.
+    /// Initializes a categorized plugin with a required, first-party <paramref name="pluginName"/>.
     /// </summary>
     /// <param name="category">The category for the plugin.</param>
     /// <param name="subCategory">The subcategory for the plugin.</param>
+    /// <param name="pluginName">The stable identity used to route configured instances to this builder.</param>
     /// <param name="pluginType">The type that implements <see cref="IPluginProvider"/>.</param>
-    public HitchPluginAttribute(string category, string subCategory, Type pluginType)
+    public HitchPluginAttribute(string category, string subCategory, string pluginName, Type pluginType)
     {
+        if (string.IsNullOrWhiteSpace(category))
+        {
+            throw new ArgumentException("Category cannot be null or whitespace.", nameof(category));
+        }
+
+        if (string.IsNullOrWhiteSpace(subCategory))
+        {
+            throw new ArgumentException("SubCategory cannot be null or whitespace.", nameof(subCategory));
+        }
+
+        if (string.IsNullOrWhiteSpace(pluginName))
+        {
+            throw new ArgumentException("PluginName cannot be null or whitespace.", nameof(pluginName));
+        }
+
         Category = category;
         SubCategory = subCategory;
+        PluginName = pluginName;
         PluginType = pluginType ?? throw new ArgumentNullException(nameof(pluginType));
     }
 }
-
