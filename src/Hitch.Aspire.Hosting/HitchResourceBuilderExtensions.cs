@@ -16,7 +16,7 @@ public static class HitchResourceBuilderExtensions
     /// <param name="serviceName">The service name for this plugin instance.</param>
     /// <param name="plugin">
     /// The <see cref="HitchPluginAttribute.PluginName"/> of the owning plugin builder. Required:
-    /// stamped into the instance config as the reserved <c>$plugin</c> key so Hitch routes this
+    /// stamped into the instance config as the reserved <c>HitchPlugin</c> key so Hitch routes this
     /// instance to exactly one builder, even when several share the
     /// <paramref name="category"/>/<paramref name="subCategory"/>.
     /// </param>
@@ -83,8 +83,10 @@ public static class HitchResourceBuilderExtensions
             }
         }
 
-        // Route this instance to its owning builder.
-        config["$plugin"] = plugin;
+        // Route this instance to its owning builder. Uses the environment-safe spelling: '$plugin'
+        // is rejected as an env var name by Azure Container Apps and Kubernetes.
+        config.Remove(HitchConfigurationKeys.LegacyPlugin);
+        config[HitchConfigurationKeys.Plugin] = plugin;
 
         return builder;
     }

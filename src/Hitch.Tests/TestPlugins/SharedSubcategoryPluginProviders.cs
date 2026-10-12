@@ -5,7 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 /// <summary>
 /// Two plugin providers that deliberately share the same (Category, SubCategory) to exercise
-/// per-instance routing via the reserved <c>$plugin</c> discriminator.
+/// per-instance routing via the reserved <c>HitchPlugin</c> (or legacy <c>$plugin</c>) discriminator.
 /// </summary>
 public class AlphaProviderBuilder : IPluginProvider
 {

@@ -1,6 +1,7 @@
 namespace Hitch.Aspire.Hosting.Tests;
 
 using global::Aspire.Hosting;
+using global::Aspire.Hosting.ApplicationModel;
 using Hitch.Aspire.Hosting;
 
 public class HitchResourceBuilderExtensionsTests
@@ -204,6 +205,49 @@ public class HitchResourceBuilderExtensionsTests
         // Assert
         var configKey = "Covalent__Responses__azure-foundry";
         Assert.True(resourceBuilder.Resource.PluginConfigurations.ContainsKey(configKey));
-        Assert.Equal("Foundry", resourceBuilder.Resource.PluginConfigurations[configKey]["$plugin"]);
+        var config = resourceBuilder.Resource.PluginConfigurations[configKey];
+        Assert.Equal("Foundry", config["HitchPlugin"]);
+        Assert.False(config.ContainsKey("$plugin"));
+    }
+
+    [Fact]
+    public void WithPlugin_DropsLegacyOwnerKeyFromConfigurations()
+    {
+        // Arrange
+        var builder = DistributedApplication.CreateBuilder();
+        var resourceBuilder = builder.AddHitch();
+
+        // Act
+        resourceBuilder.WithPlugin("Covalent", "Responses", "azure-foundry", "Foundry",
+            new Dictionary<string, object> { ["$plugin"] = "Foundry", ["Endpoint"] = "https://example" });
+
+        // Assert
+        var config = resourceBuilder.Resource.PluginConfigurations["Covalent__Responses__azure-foundry"];
+        Assert.False(config.ContainsKey("$plugin"));
+        Assert.Equal("Foundry", config["HitchPlugin"]);
+        Assert.Equal("https://example", config["Endpoint"]);
+    }
+
+    [Fact]
+    public async Task WithReference_ExportsOnlyContainerAppsAndKubernetesSafeEnvVarNames()
+    {
+        // Azure Container Apps and Kubernetes reject env var names outside this pattern. Guards
+        // against any future reserved key reintroducing an invalid character (as '$plugin' did).
+        var validName = new System.Text.RegularExpressions.Regex("^[-._a-zA-Z][-._a-zA-Z0-9]*$");
+
+        // Arrange
+        var builder = DistributedApplication.CreateBuilder();
+        var hitch = builder.AddHitch(h => h.WithAssemblies(typeof(HitchResourceBuilderExtensionsTests).Assembly).WithFilePattern("*.Plugin.dll"))
+            .WithPlugin("Covalent", "Responses", "azure-foundry", "Foundry",
+                new Dictionary<string, object> { ["Endpoint"] = "https://example" })
+            .WithPlugin("Database", "Postgres", "views", "Pg");
+        var app = builder.AddContainer("app", "image").WithReference(hitch);
+
+        // Act
+        var env = await app.Resource.GetEnvironmentVariableValuesAsync(DistributedApplicationOperation.Publish);
+
+        // Assert
+        Assert.Contains("Hitch__Plugins__Covalent__Responses__azure-foundry__HitchPlugin", env.Keys);
+        Assert.All(env.Keys, key => Assert.Matches(validName, key));
     }
 }

@@ -212,15 +212,17 @@ internal sealed class HitchBuilder : IHitchBuilder
             }
 
             // Route the instance to its owning builder. Every categorized instance must name its
-            // owner via the reserved "$plugin" key, matched against each candidate's PluginName.
-            var owner = instanceSection["$plugin"];
+            // owner via the reserved "HitchPlugin" (or legacy "$plugin") key, matched against each
+            // candidate's PluginName.
+            var owner = ResolveOwner(instanceSection, category, subCategory, serviceName);
 
             if (string.IsNullOrEmpty(owner))
             {
                 throw new InvalidOperationException(
-                    $"[Hitch] {category}:{subCategory}:{serviceName} declares no '$plugin'. Every configured " +
-                    $"instance in a categorized bucket must name its owning builder via the reserved '$plugin' " +
-                    $"key. Registered plugins for this bucket: {DescribeCandidates(candidates)}.");
+                    $"[Hitch] {category}:{subCategory}:{serviceName} declares no '{HitchConfigurationKeys.Plugin}' " +
+                    $"(or '{HitchConfigurationKeys.LegacyPlugin}'). Every configured instance in a categorized bucket " +
+                    $"must name its owning builder via the reserved '{HitchConfigurationKeys.Plugin}' key. " +
+                    $"Registered plugins for this bucket: {DescribeCandidates(candidates)}.");
             }
 
             var matches = candidates.Where(a => PluginNameMatches(a, owner)).ToList();
@@ -241,6 +243,33 @@ internal sealed class HitchBuilder : IHitchBuilder
 
             AttachPlugin(matches[0].PluginType, category, subCategory, serviceName);
         }
+    }
+
+    private static string? ResolveOwner(
+        IConfigurationSection instanceSection,
+        string category,
+        string subCategory,
+        string serviceName)
+    {
+        var owner = instanceSection[HitchConfigurationKeys.Plugin];
+        var legacyOwner = instanceSection[HitchConfigurationKeys.LegacyPlugin];
+
+        if (string.IsNullOrEmpty(owner))
+        {
+            return legacyOwner;
+        }
+
+        // Both spellings may be present (e.g. appsettings.json plus Aspire-injected env vars) as
+        // long as they name the same builder. PluginName matching is case-insensitive, so this is too.
+        if (!string.IsNullOrEmpty(legacyOwner) && !string.Equals(owner, legacyOwner, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException(
+                $"[Hitch] {category}:{subCategory}:{serviceName} names two different owners: " +
+                $"'{HitchConfigurationKeys.Plugin}' = '{owner}' and '{HitchConfigurationKeys.LegacyPlugin}' = '{legacyOwner}'. " +
+                $"Remove one, or make them agree.");
+        }
+
+        return owner;
     }
 
     private static bool PluginNameMatches(HitchPluginAttribute attribute, string owner)

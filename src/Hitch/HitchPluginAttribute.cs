@@ -25,7 +25,8 @@ public sealed class HitchPluginAttribute : Attribute
     /// <summary>
     /// Gets the stable, first-party identity of this builder within its
     /// <see cref="Category"/>/<see cref="SubCategory"/>. A configured instance routes to this
-    /// builder by naming it in the reserved <c>$plugin</c> config key. Required for categorized
+    /// builder by naming it in the reserved <c>HitchPlugin</c> config key (or the legacy
+    /// <c>$plugin</c>; see <see cref="HitchConfigurationKeys"/>). Required for categorized
     /// plugins; <c>null</c> for uncategorized ones. Must be unique among builders sharing a bucket.
     /// </summary>
     public string? PluginName { get; }
